@@ -1,0 +1,8 @@
+# Eclipse
+/.project
+/.classpath
+/.settings
+/target
+
+#TestNG
+/test-output
