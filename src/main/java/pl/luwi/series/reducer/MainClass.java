@@ -4,6 +4,9 @@ package pl.luwi.series.reducer;
 import de.micromata.opengis.kml.v_2_2_0.*;
 import de.micromata.opengis.kml.v_2_2_0.Polygon;
 import org.w3c.dom.*;
+
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -14,6 +17,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import org.w3c.dom.Document;
 import javax.xml.transform.stream.StreamResult;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,12 +31,19 @@ import static pl.luwi.series.reducer.PointImpl.p;
 /**
  * Created by maedeh.hesabgar on 12/05/2017.
  */
-public class MainClass {
+public class MainClass extends JPanel implements ActionListener {
+
+
+    static JFileChooser chooser;
+    static JButton FileButton;
 
     public static void main(String[] args){
 
+        fileCooser();
+    }
 
-        Kml kml = Kml.unmarshal(new File("C:\\Users\\maedeh.hesabgar\\Desktop\\london\\london\\ca_on_neighbourhood_london_stoneybrook.kml"));
+    public static void simplifier(String s){
+        Kml kml = Kml.unmarshal(new File(s));
         final Placemark placemark = (Placemark) kml.getFeature();
         final Polygon polygon = (Polygon) placemark.getGeometry();
         final Boundary outerBoundaryIs = polygon.getOuterBoundaryIs();
@@ -89,9 +103,9 @@ public class MainClass {
             writingouterBoundaryIs.appendChild(writingLinearRing);
 
             // coordinates element
-            Element writingcoordinates = doc.createElement("coordinates");
-            writingcoordinates.appendChild(doc.createTextNode(pointCoordinates));
-            writingLinearRing.appendChild(writingcoordinates);
+            Element writingCoordinates = doc.createElement("coordinates");
+            writingCoordinates.appendChild(doc.createTextNode(pointCoordinates));
+            writingLinearRing.appendChild(writingCoordinates);
 
 
             // write the content into xml file
@@ -115,6 +129,40 @@ public class MainClass {
         } catch (TransformerException e) {
             e.printStackTrace();
         }
+
+    }
+
+    public static void fileCooser(){
+        FileButton = new JButton("Select A Kml file");
+        FileButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                chooser = new JFileChooser();
+                chooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+                int result = chooser.showOpenDialog(new JFrame());
+                if (result == JFileChooser.APPROVE_OPTION) {
+
+                    simplifier(String.valueOf(chooser.getSelectedFile()));
+                }
+            }
+        });
+        JFrame frame = new JFrame("Choosing a kml file");
+        frame.addWindowListener(
+                new WindowAdapter() {
+                    public void windowClosing(WindowEvent e) {
+                        System.exit(0);
+                    }
+                }
+        );
+
+        JPanel panel = new JPanel();
+        panel.add(FileButton);
+        frame.add(panel);
+        frame.pack();
+        frame.setVisible(true);
+
+    }
+
+    public void actionPerformed(ActionEvent e) {
 
     }
 }
