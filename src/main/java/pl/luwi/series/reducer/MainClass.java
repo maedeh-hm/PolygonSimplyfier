@@ -3,8 +3,18 @@ package pl.luwi.series.reducer;
 
 import de.micromata.opengis.kml.v_2_2_0.*;
 import de.micromata.opengis.kml.v_2_2_0.Polygon;
+import org.w3c.dom.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import org.w3c.dom.Document;
+import javax.xml.transform.stream.StreamResult;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import static pl.luwi.series.reducer.PointImpl.p;
@@ -45,21 +55,67 @@ public class MainClass {
         System.out.println(reduced1.size());
 
 
-        final Kml createdKml = new Kml();
-        de.micromata.opengis.kml.v_2_2_0.Point p2 = createdKml.createAndSetPlacemark()
-                .withName("FirstTest").withOpen(Boolean.TRUE)
-                .createAndSetPoint();
-
+        String pointCoordinates = "";
         for(Point p:reduced1){
-            p2.addToCoordinates(p.getY(), p.getX());
-
+            pointCoordinates = pointCoordinates + p.getY() + "," + p.getX() + " ";
         }
 
+
+        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = null;
         try {
-            createdKml.marshal(new File("HelloKml.kml"));
-        } catch (FileNotFoundException e) {
+            docBuilder = docFactory.newDocumentBuilder();
+            // root elements
+            Document doc = docBuilder.newDocument();
+            Element rootElement = doc.createElement("kml");
+            rootElement.setAttribute("xmlns","http://www.opengis.net/kml/2.2");
+            doc.appendChild(rootElement);
+
+            // placeMark element
+            Element writingPlacemark = doc.createElement("Placemark");
+            rootElement.appendChild(writingPlacemark);
+            writingPlacemark.setAttribute("id","ca_on_neighbourhood_london_airport");
+
+            // polygon element
+            Element writingPolygon = doc.createElement("Polygon");
+            writingPlacemark.appendChild(writingPolygon);
+
+            // outerBoundaryIs element
+            Element writingouterBoundaryIs = doc.createElement("outerBoundaryIs");
+            writingPolygon.appendChild(writingouterBoundaryIs);
+
+            // LinearRing element
+            Element writingLinearRing = doc.createElement("LinearRing");
+            writingouterBoundaryIs.appendChild(writingLinearRing);
+
+            // coordinates element
+            Element writingcoordinates = doc.createElement("coordinates");
+            writingcoordinates.appendChild(doc.createTextNode(pointCoordinates));
+            writingLinearRing.appendChild(writingcoordinates);
+
+
+            // write the content into xml file
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = null;
+            transformer = transformerFactory.newTransformer();
+
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(new File("HelloKml.kml"));
+
+            // Output to console for testing
+            // StreamResult result = new StreamResult(System.out);
+
+            transformer.transform(source, result);
+
+
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerException e) {
             e.printStackTrace();
         }
+
     }
 }
 
