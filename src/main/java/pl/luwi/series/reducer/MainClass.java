@@ -4,9 +4,7 @@ package pl.luwi.series.reducer;
 import de.micromata.opengis.kml.v_2_2_0.*;
 import de.micromata.opengis.kml.v_2_2_0.Polygon;
 import org.w3c.dom.*;
-
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -38,12 +36,12 @@ public class MainClass extends JPanel implements ActionListener {
     static JButton FileButton;
 
     public static void main(String[] args){
-
         fileCooser();
     }
 
-    public static void simplifier(String s){
-        Kml kml = Kml.unmarshal(new File(s));
+    //This methods reads the kml file, extracts points coordinations
+    public static void simplifier(String filePath, String newFilePath){
+        Kml kml = Kml.unmarshal(new File(filePath));
         final Placemark placemark = (Placemark) kml.getFeature();
         final Polygon polygon = (Polygon) placemark.getGeometry();
         final Boundary outerBoundaryIs = polygon.getOuterBoundaryIs();
@@ -54,27 +52,27 @@ public class MainClass extends JPanel implements ActionListener {
         List<Point> myPoints= new ArrayList<Point>();
         for(Coordinate coordinate : coordinates) {
             if(coordinate != null) {
-                System.out.println("Longitude: " +  coordinate.getLongitude());
-                System.out.println("Latitude : " +  coordinate.getLatitude());
-                System.out.println("");
+
                 myPoints.add(p(coordinate.getLatitude(),coordinate.getLongitude()));
             }
         }
 
+        //remove the last point which is the first point. Because algorithm cannot work on a loop.
         myPoints.remove(myPoints.size()-1);
 
+        //calculating epsilon.EpsilonHelper has different methods for calculating epsilon. I think "avg" works best for us.
         Double epsilon = EpsilonHelper.avg(EpsilonHelper.deviations(myPoints));
+
+        //reduce is a method that eliminates the redundant/extra points.
         List<Point> reduced1 = SeriesReducer.reduce(myPoints, epsilon);
         reduced1.add(reduced1.get(0));
-        System.out.println(reduced1.size());
-
 
         String pointCoordinates = "";
         for(Point p:reduced1){
             pointCoordinates = pointCoordinates + p.getY() + "," + p.getX() + " ";
         }
 
-
+        //creating the new kml file for reduced points.
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = null;
         try {
@@ -114,10 +112,8 @@ public class MainClass extends JPanel implements ActionListener {
             transformer = transformerFactory.newTransformer();
 
             DOMSource source = new DOMSource(doc);
-            StreamResult result = new StreamResult(new File("HelloKml.kml"));
-
-            // Output to console for testing
-            // StreamResult result = new StreamResult(System.out);
+            //String newFilePath = s;
+            StreamResult result = new StreamResult(new File(newFilePath));
 
             transformer.transform(source, result);
 
@@ -132,6 +128,7 @@ public class MainClass extends JPanel implements ActionListener {
 
     }
 
+    //This method helps you to choose your kml file. It sets the filePath. and call the simplifier method on the selected chosen file.
     public static void fileCooser(){
         FileButton = new JButton("Select A Kml file");
         FileButton.addActionListener(new ActionListener() {
@@ -141,7 +138,12 @@ public class MainClass extends JPanel implements ActionListener {
                 int result = chooser.showOpenDialog(new JFrame());
                 if (result == JFileChooser.APPROVE_OPTION) {
 
-                    simplifier(String.valueOf(chooser.getSelectedFile()));
+                    String chosenFilePath = String.valueOf(chooser.getSelectedFile());
+                    String fileName = chosenFilePath.substring(chosenFilePath.lastIndexOf("\\")+1);
+                    String filePath = chosenFilePath.substring(0,chosenFilePath.lastIndexOf("\\")+1);
+                    String newFilePath = filePath + "Reduced_" + fileName;
+                    simplifier(chosenFilePath,newFilePath);
+                    System.out.print(fileName);
                 }
             }
         });
